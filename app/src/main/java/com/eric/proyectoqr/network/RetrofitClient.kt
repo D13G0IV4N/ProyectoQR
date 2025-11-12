@@ -8,7 +8,9 @@ import retrofit2.converter.gson.GsonConverterFactory
 
 object RetrofitClient {
 
-    private const val BASE_URL = "http://10.0.2.2:8000/api/"
+    // ESTA MADRE ES PARA QUE JALE EN EL EMULADOR DE LA PC
+    private const val BASE_URL = " https://corporation-rabbit-industry-host.trycloudflare.com/api/"
+
 
     // Método para obtener una instancia con contexto (para acceder a SharedPreferences)
     fun getInstance(context: Context): ApiService {
