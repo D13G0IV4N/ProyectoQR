@@ -10,4 +10,8 @@ interface ApiService {
      */
     @POST("auth/login")
     suspend fun login(@Body request: LoginRequest): Response<LoginResponse>
+
+    @POST("validator/tickets/scan")
+    suspend fun scanTicket(@Body body: ScanTicketRequest): retrofit2.Response<ScanTicketResponse>
+
 }

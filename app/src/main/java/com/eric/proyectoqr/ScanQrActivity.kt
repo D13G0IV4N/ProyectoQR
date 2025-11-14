@@ -14,15 +14,18 @@ import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.content.ContextCompat
 import com.eric.proyectoqr.databinding.ActivityScanQrBinding
-import com.google.mlkit.vision.barcode.BarcodeScannerOptions
 import com.google.mlkit.vision.barcode.BarcodeScanning
+import com.google.mlkit.vision.barcode.BarcodeScannerOptions
 import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.common.InputImage
 import java.util.concurrent.Executors
 
 class ScanQrActivity : AppCompatActivity() {
+
     private lateinit var binding: ActivityScanQrBinding
     private val cameraExecutor = Executors.newSingleThreadExecutor()
+
+    // Evita abrir la pantalla dos veces
     @Volatile private var handled = false
 
     private val requestPermissionLauncher = registerForActivityResult(
@@ -61,11 +64,9 @@ class ScanQrActivity : AppCompatActivity() {
 
             val analysis = ImageAnalysis.Builder()
                 .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-                .build()
-
-            analysis.setAnalyzer(cameraExecutor) { proxy ->
-                analyzeFrame(scanner, proxy)
-            }
+                .build().apply {
+                    setAnalyzer(cameraExecutor) { proxy -> analyzeFrame(scanner, proxy) }
+                }
 
             try {
                 provider.unbindAll()
@@ -86,22 +87,36 @@ class ScanQrActivity : AppCompatActivity() {
         imageProxy: ImageProxy
     ) {
         val mediaImage = imageProxy.image ?: run { imageProxy.close(); return }
-        val image = InputImage.fromMediaImage(
-            mediaImage,
-            imageProxy.imageInfo.rotationDegrees
-        )
+        val image = InputImage.fromMediaImage(mediaImage, imageProxy.imageInfo.rotationDegrees)
 
         scanner.process(image)
             .addOnSuccessListener { barcodes ->
                 if (handled) return@addOnSuccessListener
 
-                val value = barcodes.firstOrNull()?.rawValue
-                if (value != null) {
+                // Toma el primer valor no vacío (rawValue o displayValue)
+                val value = barcodes
+                    .firstOrNull { !it.rawValue.isNullOrBlank() || !it.displayValue.isNullOrBlank() }
+                    ?.rawValue ?: barcodes.firstOrNull()?.displayValue
+
+                if (!value.isNullOrBlank()) {
                     handled = true
-                    startActivity(
-                        Intent(this, TicketInfoActivity::class.java)
-                            .putExtra("qr_data", value)
-                    )
+                    Log.d("ScanQrActivity", "QR leído: $value")
+
+                    // Lanza TicketInfoActivity con la MISMA clave que ya usas: "qr_data"
+                    startActivity(Intent(this, TicketInfoActivity::class.java).apply {
+                        putExtra("qr_data", value)
+
+                        // Estos extras quedarán en "-" hasta que integres la llamada a la API aquí
+                        putExtra("status", "-")
+                        putExtra("message", "-")
+                        putExtra("eventName", "-")
+                        putExtra("date", "-")
+                        putExtra("shift", "-")
+                        putExtra("mesa", "-")
+                        putExtra("ticketId", "-")
+                        putExtra("reservationId", "-")
+                        putExtra("usedAt", "-")
+                    })
                     finish()
                 }
             }
